@@ -77,16 +77,30 @@ review_count_chart = alt.Chart(df).mark_line().encode(
 st.write(review_count_chart)
 
 st.header("This is the mean of stars in different states/provinces")
-state_review_chart = alt.Chart(df).mark_bar().encode(
+state_review_chart = alt.Chart(df).mark_bar(color="lightblue").encode(
     x=alt.X("state", scale=alt.Scale(zero=False), sort="-x"),
-    y=alt.Y("mean(stars)", scale=alt.Scale(zero=False)),
-    color = 'count(stars)',
+    y=alt.Y("mean(stars)", scale=alt.Scale(zero=False), title="Mean of stars"),
     tooltip = ['count(stars)','median(stars)', 'max(stars)', 'min(stars)' ]
 ).properties(
     width=800, height=400
-).interactive()
+)
 
-st.write(state_review_chart)
+aggregates = alt.Chart(df).transform_aggregate(
+    mean='mean(stars)',
+    median = 'median(stars)'
+).transform_fold(
+    ['mean','median']
+).mark_rule(size = 3).encode(
+    y='value:Q',
+    color=alt.Color(
+        'key:N',
+        scale=alt.Scale(
+            domain=['mean', 'median'],
+            range=['red', 'green'])
+    )
+)
+
+st.write(state_review_chart + aggregates)
 
 st.write('choose the state and hour you prefer:')
 option_cols = st.columns(2)
@@ -105,24 +119,26 @@ with option_cols[1]:
     
 
 slices= get_slice(df,stateOption,daysOption)
+category_selector = alt.selection_multi(fields=['category'])
 st.write("The sliced dataset contains {} elements ({:.1%} of total).".format(slices.sum(), slices.sum() / len(df)))
-chart1 = alt.Chart(df[slices]).mark_circle().encode(
-    alt.X('category',scale=alt.Scale(zero=False), sort="x"),
-    alt.Y('stars'),
-    size = 'count(stars)',
-    color = 'count(stars)',
-    tooltip = ["stars","category","count(stars)"]
-)
-st.altair_chart(chart1, use_container_width=True)
+hist_chart_selected = alt.Chart(df[slices],title="sliced data from filter").mark_bar(tooltip=True).encode(
+    alt.Y('category', sort="y"),
+    alt.X('mean(stars)'),
+    color=alt.condition(category_selector, 'mean(stars)', alt.value('lightgray')),
+).properties(
+    width=250,
+    height=250
+).add_selection(category_selector)
 
-
-chart2 = alt.Chart(df[~slices]).mark_circle(size = 20).encode(
-    alt.X('category',scale=alt.Scale(zero=False), sort="x"),
-    alt.Y('stars'),
-    size = 'count(stars)',
-    tooltip = ["stars","category","count(stars)"]
-)
-st.altair_chart(chart2, use_container_width=True)
+hist_chart_category_detail = alt.Chart(df[slices],title="selected categories").mark_line().encode(
+    alt.X('stars', sort='x'),
+    alt.Y('count()'),
+    alt.Color('category')
+).properties(
+    width=250,
+    height=250
+).transform_filter(category_selector)
+st.altair_chart(hist_chart_selected | hist_chart_category_detail)
 
 
 st.markdown("This project was created by Yining Wang and Jiaxiang Wu for the [Interactive Data Science](https://dig.cmu.edu/ids2022) course at [Carnegie Mellon University](https://www.cmu.edu).")
