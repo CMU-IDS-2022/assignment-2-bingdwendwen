@@ -6,6 +6,9 @@ TODO: Update screenshot
 
 TODO: Short abstract describing the main goals and how you achieved them.
 
+Explaination of filter data:
+Here we use state, category and 
+
 ## Project Goals
 
 TODO: **A clear description of the goals of your project.** Describe the question that you are enabling a user to answer. The question should be compelling and the solution should be focused on helping users achieve their goals. 
