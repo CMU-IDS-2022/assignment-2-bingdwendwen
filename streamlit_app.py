@@ -1,12 +1,17 @@
 from turtle import color
 from typing import Tuple
+from xml.dom.minidom import Element
 
 from numpy import sort
 import streamlit as st
 import pandas as pd
 import altair as alt
 import numpy as np
-
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_squared_error
+# pip install -U scikit-learn scipy matplotlib
 
 daylist = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 st.title("Let's analyze some Yelp Restaurant Business Data.")
@@ -57,7 +62,7 @@ def get_slice(df,state,days):
         labels &= df['state'].apply(lambda x : True if x==state else False)
     if days:
         for day in days:
-            labels &= df[day+'_avaliable']           
+            labels &= df[day+'_avaliable'] 
     return labels
 
 df = load_data()
@@ -80,6 +85,7 @@ st.header("This is the mean of stars in different states/provinces")
 state_review_chart = alt.Chart(df).mark_bar(color="lightblue").encode(
     x=alt.X("state", scale=alt.Scale(zero=False), sort="-x"),
     y=alt.Y("mean(stars)", scale=alt.Scale(zero=False), title="Mean of stars"),
+    color = 'count(stars)',
     tooltip = ['count(stars)','median(stars)', 'max(stars)', 'min(stars)' ]
 ).properties(
     width=800, height=400
@@ -124,6 +130,7 @@ st.write("The sliced dataset contains {} elements ({:.1%} of total).".format(sli
 hist_chart_selected = alt.Chart(df[slices],title="sliced data from filter").mark_bar(tooltip=True).encode(
     alt.Y('category', sort="y"),
     alt.X('mean(stars)'),
+    tooltip = ['count(stars)'],
     color=alt.condition(category_selector, 'mean(stars)', alt.value('lightgray')),
 ).properties(
     width=250,
@@ -133,6 +140,7 @@ hist_chart_selected = alt.Chart(df[slices],title="sliced data from filter").mark
 hist_chart_category_detail = alt.Chart(df[slices],title="selected categories").mark_line().encode(
     alt.X('stars', sort='x'),
     alt.Y('count()'),
+    
     alt.Color('category')
 ).properties(
     width=250,
@@ -140,6 +148,87 @@ hist_chart_category_detail = alt.Chart(df[slices],title="selected categories").m
 ).transform_filter(category_selector)
 st.altair_chart(hist_chart_selected | hist_chart_category_detail)
 
+categoryOption = st.selectbox(
+        'Choose your final decision on category:',
+        df['category'].unique()
+    )
+
+st.header("Given your choices on state and category, we will give your attributes recommendations.")
+
+@st.cache
+def get_slice2(df,state,days,category):
+    labels = pd.Series([True] * len(df), index=df.index)
+    if state:
+        labels &= df['state'].apply(lambda x : True if x==state else False)
+    if days:
+        for day in days:
+            labels &= df[day+'_avaliable'] 
+    if category:        
+        labels &= df['category'].apply(lambda x : True if x==category else False)
+    return labels
+slices2= get_slice2(df,stateOption,daysOption,categoryOption)
+df_filtered = df[slices2]
+ 
+df_prepared  = df_filtered.drop(['name', 'state', 'review_count','categories','is_open', 'BusinessParking', 'Ambience', 'GoodForMeal', 'AcceptsInsurance', 'HairSpecializesIn', 'BestNights','Music', 'Monday', 'Tuesday', 'Wednesday','Thursday', 'Friday', 
+'Saturday', 'Sunday', 'Monday_avaliable', 'Tuesday_avaliable', 'Wednesday_avaliable', 'Thursday_avaliable', 'Friday_avaliable', 'Saturday_avaliable','Sunday_avaliable', 'category'],axis=1)
+st.write("The filtered dataset contains {} records.".format(len(df_prepared)))
+if st.checkbox("show filtered data"):
+    st.write(df_prepared[:50])
+
+
+##########开始train##########
+from sklearn.model_selection import train_test_split
+
+train_set, test_set = train_test_split(df_prepared, test_size=0.2)
+df_prepared_no_labels = df_prepared.drop("stars", axis=1)
+business_train = train_set.drop("stars", axis=1)
+business_labels = train_set["stars"].copy()
+
+business_test = test_set.drop("stars", axis=1)
+business_test_labels = test_set["stars"].copy()
+
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+business_cat = business_train.drop(['latitude', 'longitude'], axis=1)
+
+num_features = ['latitude', 'longitude']
+cat_features = list(business_cat)
+# print(len(business_train),len(business_test), len(business_labels),len(cat_features))
+full_pipeline = ColumnTransformer([
+  ("num", StandardScaler(), num_features),
+  ("cat", OneHotEncoder(), cat_features),              
+])
+full_pipeline.fit(df_prepared_no_labels)
+business_prepared = full_pipeline.transform(business_train)
+business_test_prepared = full_pipeline.transform(business_test)
+# print("*")
+# print(business_prepared.shape)
+tree_reg = DecisionTreeRegressor()
+tree_reg.fit(business_prepared, business_labels)
+
+business_predictions = tree_reg.predict(business_test_prepared)
+tree_mse = mean_squared_error(business_test_labels, business_predictions)
+tree_rmse = np.sqrt(tree_mse)
+st.metric(label = "Resulted Tree_RMSE", value = tree_rmse)
+
+print(tree_rmse)
+#housing
+column_names = list(business_train.columns) + list(full_pipeline.transformers_[1][1].get_feature_names_out())
+for x in list(business_cat):
+    column_names.remove(x)
+print(column_names)
+treefeature_d = {'Importance Score': tree_reg.feature_importances_, 'Features': list(column_names)}
+treefeature_df = pd.DataFrame(treefeature_d)
+treefeature_df = treefeature_df[treefeature_df['Importance Score']!=0]
+
+feature_importance_chart = alt.Chart(treefeature_df).mark_bar().encode(
+    alt.X("Importance Score"),
+    alt.Y("Features", sort='-x'),
+    tooltip = ["Importance Score"]
+)
+st.altair_chart(feature_importance_chart, use_container_width=True)
 
 st.markdown("This project was created by Yining Wang and Jiaxiang Wu for the [Interactive Data Science](https://dig.cmu.edu/ids2022) course at [Carnegie Mellon University](https://www.cmu.edu).")
+
 
