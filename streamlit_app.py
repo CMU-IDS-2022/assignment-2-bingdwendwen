@@ -139,8 +139,7 @@ hist_chart_selected = alt.Chart(df[slices],title="sliced data from filter").mark
 
 hist_chart_category_detail = alt.Chart(df[slices],title="selected categories").mark_line().encode(
     alt.X('stars', sort='x'),
-    alt.Y('count()'),
-    
+    alt.Y('count()'), 
     alt.Color('category')
 ).properties(
     width=250,
@@ -150,7 +149,7 @@ st.altair_chart(hist_chart_selected | hist_chart_category_detail)
 
 categoryOption = st.selectbox(
         'Choose your final decision on category:',
-        df['category'].unique()
+        sorted(df['category'].unique())
     )
 
 st.header("Given your choices on state and category, we will give your attributes recommendations.")
@@ -171,12 +170,12 @@ df_filtered = df[slices2]
  
 df_prepared  = df_filtered.drop(['name', 'state', 'review_count','categories','is_open', 'BusinessParking', 'Ambience', 'GoodForMeal', 'AcceptsInsurance', 'HairSpecializesIn', 'BestNights','Music', 'Monday', 'Tuesday', 'Wednesday','Thursday', 'Friday', 
 'Saturday', 'Sunday', 'Monday_avaliable', 'Tuesday_avaliable', 'Wednesday_avaliable', 'Thursday_avaliable', 'Friday_avaliable', 'Saturday_avaliable','Sunday_avaliable', 'category'],axis=1)
-st.write("The filtered dataset contains {} records.".format(len(df_prepared)))
+st.write("The final dataset contains {} records.".format(len(df_prepared)))
 if st.checkbox("show filtered data"):
     st.write(df_prepared[:50])
 
 
-##########开始train##########
+##########start to train##########
 from sklearn.model_selection import train_test_split
 
 train_set, test_set = train_test_split(df_prepared, test_size=0.2)
@@ -210,7 +209,7 @@ tree_reg.fit(business_prepared, business_labels)
 business_predictions = tree_reg.predict(business_test_prepared)
 tree_mse = mean_squared_error(business_test_labels, business_predictions)
 tree_rmse = np.sqrt(tree_mse)
-st.metric(label = "Resulted Tree_RMSE", value = tree_rmse)
+st.metric(label = "Resulted Tree_RMSE", value = round(tree_rmse,5))
 
 print(tree_rmse)
 #housing
@@ -221,13 +220,40 @@ print(column_names)
 treefeature_d = {'Importance Score': tree_reg.feature_importances_, 'Features': list(column_names)}
 treefeature_df = pd.DataFrame(treefeature_d)
 treefeature_df = treefeature_df[treefeature_df['Importance Score']!=0]
+treefeature_df = treefeature_df.sort_values('Importance Score',ascending=False)
+treefeature_df['Importance Score'] = treefeature_df['Importance Score'].apply(lambda x: round(x, 5))
 
 feature_importance_chart = alt.Chart(treefeature_df).mark_bar().encode(
     alt.X("Importance Score"),
-    alt.Y("Features", sort='-x'),
-    tooltip = ["Importance Score"]
+    alt.Y("Features", sort='-x')
 )
-st.altair_chart(feature_importance_chart, use_container_width=True)
+
+top_five_features = treefeature_df[0:5]
+top_five_features_chart = alt.Chart(top_five_features).mark_bar().encode(
+    alt.X("Importance Score"),
+    alt.Y("Features", sort='-x')
+)
+
+top_five_text = top_five_features_chart.mark_text(
+    align='left',
+    baseline='middle',
+    dx=3  # Nudges text to right so it doesn't appear on top of the bar
+).encode(
+    text='Importance Score'
+)
+
+all_features_text = feature_importance_chart.mark_text(
+    align='left',
+    baseline='middle',
+    dx=3  # Nudges text to right so it doesn't appear on top of the bar
+).encode(
+    text='Importance Score'
+)
+
+st.header("The top five features")
+st.altair_chart(top_five_features_chart + top_five_text, use_container_width=True)
+if st.checkbox("show all features"):
+    st.altair_chart(feature_importance_chart + all_features_text, use_container_width=True)
 
 st.markdown("This project was created by Yining Wang and Jiaxiang Wu for the [Interactive Data Science](https://dig.cmu.edu/ids2022) course at [Carnegie Mellon University](https://www.cmu.edu).")
 
