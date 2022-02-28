@@ -1,8 +1,3 @@
-from turtle import color
-from typing import Tuple
-from xml.dom.minidom import Element
-
-from numpy import sort
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -38,6 +33,26 @@ def getCategory(x):
         return "Korean"
     elif "vietnamese" in x:
         return "Vietnamese"
+    elif "african" in x:
+        return "African"
+    elif "barbeque" in x:
+        return "Barbeque"
+    elif "brazilian" in x:
+        return "Brazilian"
+    elif "latin american" in x:
+        return "Latin American"
+    elif "middle eastern" in x:
+        return "Middle Eastern"
+    elif "soul food" in x:
+        return "Soul Food"
+    elif "spanish" in x:
+        return "Spanish"
+    elif "taiwanese" in x:
+        return "Taiwanese"
+    elif "vietnamese" in x:
+        return "Vietnamese"
+    elif "vegetarian" in x:
+        return "Vegetarian"
     else:
         return "Other"
     
