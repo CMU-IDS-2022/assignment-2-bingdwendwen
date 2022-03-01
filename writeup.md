@@ -32,8 +32,8 @@ By hovering on each bar, the user is able to see the statistics of each states. 
 ![](imagefiles/choose_state.png)
 ### 3. Choose state and days, find relationship between category and stars.
 Here, the user has decided where he wants to open his business, and he can mulyi-choose the days the restaurant opens. After user decided the state and the days, the user is able to see the popularity distributions of different categories of cusines. 
-User can click on the left chart to choose multiple categories by press **SHIFT** and click. The right line chart will show what you selected in the left chart.\n
-Foe example, from the gif, we can see French, Korean and indian cusines is easier to get high ratings in the state of BC. 
+User can click on the left chart to choose multiple categories by press **SHIFT** and click. The right line chart will show what you selected in the left chart.
+Fo example, from the gif, we can see French, Korean and indian cusines is easier to get high ratings in the state of BC. 
 ![filter_data](imagefiles/filter_data.gif)
 
 ### 4. Explore attribute recommendations. 
@@ -78,4 +78,4 @@ On the other hand, it's important to read the official documents of any library.
 Add to Jiaxiang's comments, when we are choosing the datasets, we found interesting datasets are often not free. What I mean by interesting, is that the dataset can solve real world unsolved problems. \
 From our analysis, it is interesting to find that foreign dishes are quite popular in the United States. Especially for Indian and Korean dishes, they usually have higher ratings than the local american dishes. 
 
-TODO:  **A success story of your project.** Describe an insight or discovery you gain with your application that relates to the goals of your project.
+<!-- TODO:  **A success story of your project.** Describe an insight or discovery you gain with your application that relates to the goals of your project. -->
